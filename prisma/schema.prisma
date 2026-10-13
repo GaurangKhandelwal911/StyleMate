@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String            @id @default(cuid())
+  name            String            @default("Aryan Sharma")
+  email           String            @unique @default("aryan@example.com")
+  avatarUrl       String?
+  gender          String?           @default("Masculine")
+  complexion      String?           @default("Deep")
+  height          String?           @default("5'10\" – 6'1\"")
+  items           ClosetItem[]
+  outfits         Outfit[]
+  outfitHistory   OutfitHistory[]
+  userPreference  UserPreference?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model ClosetItem {
+  id                String               @id @default(cuid())
+  userId            String
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  category          String               // Tops, Bottoms, Outerwear, Shoes, Accessories, Ethnic Wear, Dresses
+  type              String               // Shirt, T-Shirt, Jeans, Trousers, Chinos, Jacket, Sneakers, Loafers, etc.
+  color             String               // White, Black, Navy, Beige, Olive, Grey, Brown, etc.
+  pattern           String               @default("Solid") // Solid, Striped, Plaid, Textured, Graphic, Printed
+  material          String               @default("Cotton") // Cotton, Linen, Denim, Wool, Leather, Silk, Synthetic
+  fit               String               @default("Regular") // Regular, Slim, Relaxed, Oversized, Tailored
+  style             String               @default("Casual") // Casual, Smart Casual, Formal, Streetwear, Minimal, Traditional
+  occasions         String               @default("[\"Casual\"]") // JSON array of strings
+  seasons           String               @default("[\"All Season\"]") // JSON array of strings
+  brand             String?
+  status            String               @default("AVAILABLE") // AVAILABLE, TEMPORARILY_UNAVAILABLE, REMOVED
+  unavailableReason String?              // Laundry, Repair, Being worn, Packed, Loaned, Other
+  unavailableUntil  DateTime?
+  notes             String?
+  imageUrl          String?
+  isFavorite        Boolean              @default(false)
+  wearCount         Int                  @default(0)
+  lastWornAt        DateTime?
+  outfitItems       OutfitItem[]
+  availabilityLogs  AvailabilityRecord[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([userId, status])
+  @@index([category])
+}
+
+model AvailabilityRecord {
+  id           String     @id @default(cuid())
+  closetItemId String
+  closetItem   ClosetItem @relation(fields: [closetItemId], references: [id], onDelete: Cascade)
+  status       String     // TEMPORARILY_UNAVAILABLE, AVAILABLE
+  reason       String?    // Laundry, Repair, etc.
+  startDate    DateTime   @default(now())
+  endDate      DateTime?
+  createdAt    DateTime   @default(now())
+
+  @@index([closetItemId])
+}
+
+model Outfit {
+  id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  occasion     String          // College Presentation, Office, Casual Outing, Date, Party, Wedding, etc.
+  style        String          // Smart Casual, Formal, Casual, Streetwear, Minimal, etc.
+  weather      String          // Hot, Mild, Cold, Rainy, Auto
+  score        Int             @default(85) // 0-100
+  explanation  String          // "Why this works" text
+  isFavorite   Boolean         @default(false)
+  isWorn       Boolean         @default(false)
+  plannedDate  DateTime?       // For Calendar scheduling
+  items        OutfitItem[]
+  historyLogs  OutfitHistory[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([userId])
+}
+
+model OutfitItem {
+  id           String     @id @default(cuid())
+  outfitId     String
+  outfit       Outfit     @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  closetItemId String
+  closetItem   ClosetItem @relation(fields: [closetItemId], references: [id], onDelete: Cascade)
+  role         String     @default("MAIN") // TOP, BOTTOM, FOOTWEAR, OUTERWEAR, ACCESSORY
+
+  @@index([outfitId])
+  @@index([closetItemId])
+}
+
+model OutfitHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outfitId  String
+  outfit    Outfit   @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  wornAt    DateTime @default(now())
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, wornAt])
+}
+
+model UserPreference {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredStyles  String   @default("[\"Smart Casual\", \"Casual\", \"Minimal\"]") // JSON array
+  preferredColors  String   @default("[\"White\", \"Navy\", \"Black\", \"Beige\", \"Olive\"]") // JSON array
+  dislikedColors   String   @default("[]") // JSON array
+  preferredFit     String   @default("Regular")
+  complexion       String?  @default("Deep with rich undertones")
+  gender           String?  @default("Masculine")
+  height           String?  @default("5'10\" – 6'1\" (178 – 185 cm)")
+  otherPreferences String?  // Free text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
